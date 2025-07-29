@@ -1,0 +1,112 @@
+const { test, expect } = require('@playwright/test');
+
+// Utility: Get random item from array
+function getRandomItem(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+// Sample realistic names
+const firstNames = ['Ava', 'Liam', 'Mia', 'Noah', 'Emma', 'Elijah', 'Sophia', 'James', 'Olivia', 'Lucas'];
+const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Davis', 'Garcia', 'Miller', 'Wilson', 'Moore', 'Taylor'];
+
+test('Add Provider User – Mandatory Fields', async ({ page }) => {
+  const timestamp = Date.now();
+
+  const firstName = getRandomItem(firstNames);
+  const lastName = getRandomItem(lastNames);
+  const email = `auto.${firstName.toLowerCase()}.${lastName.toLowerCase()}${timestamp}@testmail.com`;
+
+  const testData = {
+    firstName,
+    lastName,
+    dob: '01/01/1985',
+    gender: 'Male',
+    role: 'Provider',
+    email
+  };
+
+  console.log('🧪 Starting test with data:', testData);
+
+  try {
+    // Step 1-2: Navigate to the application
+    console.log('🌐 Step 1-2: Navigating to the application...');
+    await page.goto('https://stage_aithinkitive.uat.provider.ecarehealth.com/', {
+      waitUntil: 'networkidle',
+      timeout: 30000
+    });
+
+    // Step 3: Login process
+    console.log('🔐 Step 3: Performing login...');
+    await page.waitForLoadState('networkidle');
+
+    await page.locator('input[type="email"], input[name="email"], input[placeholder*="email" i]')
+      .first()
+      .fill('RubyVOlague@jourrapide.com');
+
+    await page.locator('input[type="password"], input[name="password"]')
+      .first()
+      .fill('Pass@123');
+
+    await page.locator('button:has-text("Let\'s get Started"), button:has-text("Login"), button[type="submit"]')
+      .first()
+      .click();
+
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    console.log('✅ Login successful');
+
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    console.log('🖥️ Browser maximized');
+
+    // Step 4: Navigate to Settings → User Settings → Providers
+    console.log('⚙️ Step 4: Navigating to Provider settings...');
+    await page.locator('a:has-text("Settings"), button:has-text("Settings"), [data-testid*="settings"]')
+      .first()
+      .click();
+    await page.waitForTimeout(1000);
+
+    await page.getByText('User Settings', { exact: true }).click();
+    await page.waitForTimeout(1000);
+
+    await page.getByText('Providers', { exact: true }).click();
+    await page.waitForLoadState('networkidle');
+    console.log('✅ Successfully navigated to Providers section');
+
+    // Step 5: Click "Add Provider User"
+    await page.getByRole('button', { name: 'Add Provider User' }).click();
+    await page.waitForTimeout(2000);
+    console.log('✅ Add Provider form opened');
+
+    // Step 6: Fill form
+    console.log('📝 Step 6: Filling form...');
+    await page.locator('input[name="firstName"], input[placeholder*="First Name" i]')
+      .fill(testData.firstName);
+    await page.locator('input[name="lastName"], input[placeholder*="Last Name" i]')
+      .fill(testData.lastName);
+
+    await page.locator('input[name="role"][role="combobox"]').click();
+    await page.waitForTimeout(500);
+    await page.getByText('Provider', { exact: true }).click();
+    console.log('✅ Provider role selected');
+
+    await page.locator('input[name="gender"][role="combobox"]').click();
+    await page.waitForTimeout(500);
+    await page.getByText('Male', { exact: true }).click();
+    console.log('✅ Gender selected: Male');
+
+    await page.locator('input[name="email"], input[type="email"]')
+      .last()
+      .fill(testData.email);
+    console.log('✅ Email entered:', testData.email);
+
+    const saveButton = page.locator('button:has-text("Save")');
+    await expect(saveButton).toBeVisible({ timeout: 5000 });
+    await saveButton.click();
+    console.log('💾 Save button clicked successfully');
+
+  } catch (error) {
+    console.error('❌ Test failed:', error.message);
+    console.log('Current URL:', page.url());
+    throw error;
+  }
+});
